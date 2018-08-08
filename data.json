@@ -1,0 +1,59 @@
+{
+  "crimes": [
+    {
+      "year": "2012/13",
+      "race": "9383",
+      "religion": "631",
+      "sexuality": "1132",
+      "disability": "108",
+      "transgender": "50",
+      "antisemitic": "182",
+      "islamophobic": "346",
+      "total": "11832"
+    },
+    {
+      "year": "2013/14",
+      "race": "9749",
+      "religion": "915",
+      "sexuality": "1213",
+      "disability": "124",
+      "transgender": "79",
+      "antisemitic": "194",
+      "islamophobic": "577",
+      "total": "12851"
+    },
+    {
+      "year": "2014/15",
+      "race": "11540",
+      "religion": "1371",
+      "sexuality": "1549",
+      "disability": "178",
+      "transgender": "107",
+      "antisemitic": "459",
+      "islamophobic": "742",
+      "total": "15946"
+    },
+    {
+      "year": "2015/16",
+      "race": "13298",
+      "religion": "1763",
+      "sexuality": "1844",
+      "disability": "357",
+      "transgender": "152",
+      "antisemitic": "441",
+      "islamophobic": "1115",
+      "total": "18970"
+    },
+    {
+      "year": "2016/17",
+      "race": "15923",
+      "religion": "2116",
+      "sexuality": "2046",
+      "disability": "666",
+      "transgender": "202",
+      "antisemitic": "542",
+      "islamophobic": "1266",
+      "total": "22761"
+    }
+  ]
+}
