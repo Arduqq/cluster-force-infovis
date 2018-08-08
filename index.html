@@ -3,26 +3,30 @@
 <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
 <script>
 
-var width = 960,
-    height = 500,
+var width = 1200,
+    height = 600,
     padding = 1.5, // separation between same-color nodes
     clusterPadding = 6, // separation between different-color nodes
-    maxRadius = 12;
+    maxRadius = 20;
 
 var n = 200, // total number of nodes
-    m = 10; // number of distinct clusters
+    m = 30; // number of distinct clusters
 
-var color = d3.scale.category10()
+var color = d3.scale.category20c()
     .domain(d3.range(m));
 
 // The largest node for each cluster.
 var clusters = new Array(m);
 
+// Wir definieren hier die Knoten
 var nodes = d3.range(n).map(function() {
-  var i = Math.floor(Math.random() * m),
-      r = Math.sqrt((i + 1) / m * -Math.log(Math.random())) * maxRadius,
+  var i = Math.floor(Math.random() * m), // Zufällige Zahl zwischen 0 und der maximalen Clusteranzahl 
+                                         // (Math.random() ist ein float zwischen 0 und 1)
+      
+      r = Math.sqrt((i + 1) / m * -Math.log(Math.random())) * maxRadius, // Zufälliger Radius für jeden Knoten
+                                                                         // angepasst an maximalen Radius
       d = {cluster: i, radius: r};
-  if (!clusters[i] || (r > clusters[i].radius)) clusters[i] = d;
+  if (!clusters[i] || (r > clusters[i].radius)) clusters[i] = d; // Knoten entweder erstellt oder überschrieben
   return d;
 });
 
@@ -36,23 +40,29 @@ d3.layout.pack()
       .key(function(d) { return d.cluster; })
       .entries(nodes)});
 
+// Initialisierung des d3 force layouts
 var force = d3.layout.force()
-    .nodes(nodes)
-    .size([width, height])
-    .gravity(.02)
-    .charge(0)
-    .on("tick", tick)
+    .nodes(nodes) // Alle unsere Knoten
+    .size([width, height]) // Die maximale Größe
+    .gravity(.03) // Anziehungskraft durch das Zentrum
+    .charge(-5) // Negative Werte lassen Knoten sich gegenseitig abstoßen, positive Werte ziehen sich gegenseitig an
+                 // Anpassung gemäß des Radius wären daher sinnvoll
+    .on("tick", tick) // https://stackoverflow.com/a/28745519
     .start();
 
+// Wir erstellen einen SVG container und fügen ihn einfach zur DOM hinzu
 var svg = d3.select("body").append("svg")
     .attr("width", width)
     .attr("height", height);
 
+// Dedinition wie ein Kreis auszusehen hat
 var node = svg.selectAll("circle")
     .data(nodes)
-  .enter().append("circle")
+    .enter().append("circle")
+    // ganzes Cluster wird gleichmäßig gefärbt
     .style("fill", function(d) { return color(d.cluster); })
-    .call(force.drag);
+    // andere Möglichkeiten Kreise zu zeichnen: http://www.d3noob.org/2014/02/styles-in-d3js.html
+    .call(force.drag); // Kreis kann bewegt werden
 
 node.transition()
     .duration(750)
@@ -75,6 +85,7 @@ function cluster(alpha) {
   return function(d) {
     var cluster = clusters[d.cluster];
     if (cluster === d) return;
+    // Anpassung der Knotenposition an die Position des Clusters
     var x = d.x - cluster.x,
         y = d.y - cluster.y,
         l = Math.sqrt(x * x + y * y),
