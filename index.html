@@ -28,6 +28,7 @@
                         var r = obj[key] / 30;
                         d = {
                             cluster: year,
+                            key: key,
                             radius: r
                         };
                         if (!clusters[i] || (r > clusters[i].radius)) clusters[year] = d;
@@ -85,6 +86,14 @@
                 .attr("width", width)
                 .attr("height", height);
 
+            // Text mit Informationen zum Knoten
+            var information = d3.select("body")
+                .append("div")
+                .style("position", "absolute")
+                .style("z-index", "10")
+                .style("visibility", "hidden")
+                .text("a simple tooltip");
+
             // Dedinition wie ein Kreis auszusehen hat
             var node = svg.selectAll("circle")
                 .data(nodes)
@@ -93,8 +102,18 @@
                 .style("fill", function(d) {
                     return color(d.cluster);
                 })
+                .style("opacity", .5)
                 // andere Möglichkeiten Kreise zu zeichnen: http://www.d3noob.org/2014/02/styles-in-d3js.html
-                .call(force.drag); // Kreis kann bewegt werden
+                .call(force.drag) // Kreis kann bewegt werden
+                .on("mouseover", function(d) {
+                    d3.select(this).style("opacity", 1);
+                    return information.style("visibility", "visible").text("year: " + d.cluster + "  (" + d.key + ") amount: " + d.radius * 30);
+                })
+                .on("mouseout", function(d) {
+                    d3.select(this).style("opacity", .5);
+                    return information.style("visibility", "hidden");
+                });
+
 
             node.transition()
                 .duration(750)
