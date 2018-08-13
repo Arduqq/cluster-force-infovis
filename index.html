@@ -2,191 +2,214 @@
 
 <body>
     <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <p>
+        <label for="scalingOffset" style="display: inline-block; width: 160px; text-align: right">
+            Scaling: <span id="scalingOffset-value" style="width:400px">...</span>
+        </label>
+        <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
+    </p>
     <script>
-        var width = 1200,
-            height = 600,
-            padding = 1.5, // separation between same-color nodes
-            clusterPadding = 6, // separation between different-color nodes
-            maxRadius = 20;
+    //================================================================================
+    // Eigenschaften
+    //================================================================================
+    var width = 1000,
+        height = 500,
+        padding = 1, // Abstände zwischen gleichfarbigen Knoten
+        clusterPadding = 15, //Abstände zwischen verschiedenfarbigen Clustern
+        maxRadius = 100, // Maximaler Radius eines Knotens
+        scaling = 0.03, // Skalierung der Knoten
+        scalingOffset = 0;
 
-        var n = 35, // total number of nodes
-            m = 5; // number of distinct clusters
+    var n = 35, // Anzahl aller Knoten
+        m = 5; // Anzahl von Clustern
 
-        var color = d3.scale.category10()
-            .domain(d3.range(m));
+    // Farbkategorie von d3: http://bl.ocks.org/aaizemberg/78bd3dade9593896a59d
+    var color = d3.scale.category10()
+        .domain(d3.range(m));
 
-        // The largest node for each cluster.
-        var clusters = new Array(m);
-        var nodes = [];
+    var clusters = new Array(m); // Liste aller Cluster
+    var nodes = []; // Liste aller Knoten
 
-        d3.json("data-no-race.json", function(error, data) {
-            for (var i = 0; i < data.length; i++) {
-                var obj = data[i];
-                for (var key in obj) {
-                    if (key != 'year') {
-                        var year = obj['year'];
-                        var r = obj[key] / 30;
-                        d = {
-                            cluster: year,
-                            key: key,
-                            radius: r
-                        };
-                        if (!clusters[i] || (r > clusters[i].radius)) clusters[year] = d;
-                        nodes.push(d);
-
-                    }
-
-                }
-
-            }
-
-            /* Wir definieren hier zufällige Knoten
-            var nodes = d3.range(n).map(function() {
-              var i = Math.floor(Math.random() * m), // Zufällige Zahl zwischen 0 und der maximalen Clusteranzahl 
-                                                     // (Math.random() ist ein float zwischen 0 und 1)
-                  
-                  r = Math.sqrt((i + 1) / m * -Math.log(Math.random())) * maxRadius, // Zufälliger Radius für jeden Knoten
-                                                                                     // angepasst an maximalen Radius
-                  d = {cluster: i, radius: r};
-              if (!clusters[i] || (r > clusters[i].radius)) clusters[i] = d; // Knoten entweder erstellt oder überschrieben
-              return d;
-            });
-            */
-
-            // Use the pack layout to initialize node positions.
-            d3.layout.pack()
-                .sort(null)
-                .size([width, height])
-                .children(function(d) {
-                    return d.values;
-                })
-                .value(function(d) {
-                    return d.radius * d.radius;
-                })
-                .nodes({
-                    values: d3.nest()
-                        .key(function(d) {
-                            return d.cluster;
-                        })
-                        .entries(nodes)
-                });
-
-            // Initialisierung des d3 force layouts
-            var force = d3.layout.force()
-                .nodes(nodes) // Alle unsere Knoten
-                .size([width, height]) // Die maximale Größe
-                .gravity(.01) // Anziehungskraft durch das Zentrum
-                .charge(0) // Negative Werte lassen Knoten sich gegenseitig abstoßen, positive Werte ziehen sich gegenseitig an
-                // Anpassung gemäß des Radius wären daher sinnvoll
-                .on("tick", tick) // https://stackoverflow.com/a/28745519
-                .start();
-
-            // Wir erstellen einen SVG container und fügen ihn einfach zur DOM hinzu
-            var svg = d3.select("body").append("svg")
-                .attr("width", width)
-                .attr("height", height);
-
-            // Text mit Informationen zum Knoten
-            var information = d3.select("body")
-                .append("div")
-                .style("position", "absolute")
-                .style("z-index", "10")
-                .style("visibility", "hidden")
-                .text("a simple tooltip");
-
-            // Dedinition wie ein Kreis auszusehen hat
-            var node = svg.selectAll("circle")
-                .data(nodes)
-                .enter().append("circle")
-                // ganzes Cluster wird gleichmäßig gefärbt
-                .style("fill", function(d) {
-                    return color(d.cluster);
-                })
-                .style("opacity", .5)
-                // andere Möglichkeiten Kreise zu zeichnen: http://www.d3noob.org/2014/02/styles-in-d3js.html
-                .call(force.drag) // Kreis kann bewegt werden
-                .on("mouseover", function(d) {
-                    d3.select(this).style("opacity", 1);
-                    return information.style("visibility", "visible").text("year: " + d.cluster + "  (" + d.key + ") amount: " + d.radius * 30);
-                })
-                .on("mouseout", function(d) {
-                    d3.select(this).style("opacity", .5);
-                    return information.style("visibility", "hidden");
-                });
-
-
-            node.transition()
-                .duration(750)
-                .delay(function(d, i) {
-                    return i * 5;
-                })
-                .attrTween("r", function(d) {
-                    var i = d3.interpolate(0, d.radius);
-                    return function(t) {
-                        return d.radius = i(t);
+    //================================================================================
+    // Dateneingang
+    //================================================================================
+    // TODO: Aktuell wird nicht die Gesamtanzahl an das Cluster selbst übergeben
+    // Alle Funktionen finden innerhalb der JSON-Datei statt
+    d3.json("data-no-race.json", function(error, data) {
+        for (var i = 0; i < data.length; i++) {
+            var obj = data[i]; // Für jedes Objekt werden alle Schlüssel durchlaufen
+            for (var key in obj) { // key = {'race', 'sexuality', ...}
+                if (key != 'year') { // Wir ordnen die Cluster nach dem Jahr
+                    var year = obj['year'];
+                    var r = obj[key] * scaling; // Radius ergibt sich aus dem Wert
+                    d = { // Knoten wird erstellt
+                        cluster: year,
+                        key: key,
+                        radius: r
                     };
-                });
+                    // Letzter Wert wird an das Cluster übergeben
+                    if (!clusters[i] || (r > clusters[i].radius)) clusters[year] = d;
+                    // Knoten wird angefügt
+                    nodes.push(d);
+                }
+            }
+        }
 
-            function tick(e) {
-                node
-                    .each(cluster(10 * e.alpha * e.alpha))
-                    .each(collide(.5))
-                    .attr("cx", function(d) {
-                        return d.x;
+        //================================================================================
+        // Layout
+        //================================================================================
+        // Pack layout für die Ausgangspositionen der Nodes
+        // https://d3-wiki.readthedocs.io/zh_CN/master/Pack-Layout/
+        d3.layout.pack() // Knoten können mithilfe einer Funktion sortiert werden
+            .sort(function(a, b) {
+                return a.radius - b.radius;
+            })
+            .size([width, height])
+            .children(function(d) {
+                return d.values;
+            })
+            .value(function(d) {
+                return d.radius * d.radius;
+            })
+            .nodes({ // Pack Layouts können auch Hierarchien abbilden
+                values: d3.nest()
+                    .key(function(d) {
+                        return d.cluster;
                     })
-                    .attr("cy", function(d) {
-                        return d.y;
-                    });
-            }
+                    .entries(nodes)
+            });
 
-            // Move d to be adjacent to the cluster node.
-            function cluster(alpha) {
-                return function(d) {
-                    var cluster = clusters[d.cluster];
-                    if (cluster === d) return;
-                    // Anpassung der Knotenposition an die Position des Clusters
-                    var x = d.x - cluster.x,
-                        y = d.y - cluster.y,
-                        l = Math.sqrt(x * x + y * y),
-                        r = d.radius + cluster.radius;
-                    if (l != r) {
-                        l = (l - r) / l * alpha;
-                        d.x -= x *= l;
-                        d.y -= y *= l;
-                        cluster.x += x;
-                        cluster.y += y;
-                    }
-                };
-            }
+        // Force Layout für die Zentrierung der Knoten und deren Bewegung im Raum
+        var force = d3.layout.force()
+            .nodes(nodes) // Alle unsere Knoten
+            .size([width, height]) // Die maximale Größe
+            .gravity(.01) // Anziehungskraft durch das Zentrum
+            .charge(0) // Negative Werte lassen Knoten sich gegenseitig abstoßen, positive Werte ziehen sich gegenseitig an
+            // Anpassung gemäß des Radius wären daher sinnvoll
+            .on("tick", tick) // https://stackoverflow.com/a/28745519
+            .start();
 
-            // Resolves collisions between d and all other circles.
-            function collide(alpha) {
-                var quadtree = d3.geom.quadtree(nodes);
-                return function(d) {
-                    var r = d.radius + maxRadius + Math.max(padding, clusterPadding),
-                        nx1 = d.x - r,
-                        nx2 = d.x + r,
-                        ny1 = d.y - r,
-                        ny2 = d.y + r;
-                    quadtree.visit(function(quad, x1, y1, x2, y2) {
-                        if (quad.point && (quad.point !== d)) {
-                            var x = d.x - quad.point.x,
-                                y = d.y - quad.point.y,
-                                l = Math.sqrt(x * x + y * y),
-                                r = d.radius + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
-                            if (l < r) {
-                                l = (l - r) / l * alpha;
-                                d.x -= x *= l;
-                                d.y -= y *= l;
-                                quad.point.x += x;
-                                quad.point.y += y;
-                            }
-                        }
-                        return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
-                    });
-                };
-            }
+        // Wir erstellen einen SVG Container und fügen ihn einfach zur DOM hinzu
+        var svg = d3.select("body").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        // Textzug mit Informationen zum Knoten
+        var information = d3.select("body")
+            .append("div")
+            .style("position", "fixed")
+            .style("z-index", "10")
+            .style("top", "0")
+            .style("right", "0")
+            .style("visibility", "hidden")
+            .text("a simple tooltip");
+
+        d3.select("#scalingOffset").on("input", function() {
+            scalingOffset = this.value * 10;
+            d3.select("#scalingOffset-value").text(Math.floor(scalingOffset));
+
+           	svg.selectAll("circle")
+                .attr("r", function(d) {
+                    return d.radius + scalingOffset;
+                });
 
         });
 
+
+
+        //================================================================================
+        // Kreiseigenschaften
+        //================================================================================
+        //Definition wie ein Kreis auszusehen hat
+        var node = svg.selectAll("circle")
+            .data(nodes)
+            .enter().append("circle")
+            .attr("class", "node")
+            .attr("r", function(d) {
+                return d.radius + scalingOffset;
+            })
+            // ganzes Cluster wird gleichmäßig gefärbt
+            .style("fill", function(d) {
+                return color(d.cluster);
+            })
+            .style("opacity", .5)
+            // andere Möglichkeiten Kreise zu zeichnen: http://www.d3noob.org/2014/02/styles-in-d3js.html
+            .call(force.drag) // Kreis kann bewegt werden
+            .on("mouseover", function(d) {
+                d3.select(this).style("opacity", 1);
+                return information.style("visibility", "visible").text("year: " + d.cluster + "  (" + d.key + ") amount: " + d.radius / scaling);
+            })
+            .on("mouseout", function(d) {
+                d3.select(this).style("opacity", .5);
+                return information.style("visibility", "hidden");
+            });
+
+
+        //================================================================================
+        // Datenverarbeitung
+        //================================================================================
+
+        // Anwendung läuft nach Ticks
+        function tick(e) {
+            node
+                .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
+                .each(collide(.8)) // Kollisionen werden verechnet
+                // Neue Position wird gespeichert
+                .attr("cx", function(d) {
+                    return d.x;
+                })
+                .attr("cy", function(d) {
+                    return d.y;
+                });
+        }
+
+        // Cluster bewegen sich miteinander
+        function cluster(alpha) {
+            return function(d) {
+                var cluster = clusters[d.cluster];
+                if (cluster === d) return;
+                // Anpassung der Knotenposition an die Position des Clusters
+                var x = d.x - cluster.x,
+                    y = d.y - cluster.y,
+                    l = Math.sqrt(x * x + y * y),
+                    r = d.radius + scalingOffset + cluster.radius;
+                if (l != r) {
+                    l = (l - r) / l * alpha;
+                    d.x -= x *= l;
+                    d.y -= y *= l;
+                    cluster.x += x;
+                    cluster.y += y;
+                }
+            };
+        }
+
+        // Kollisionen unter den Kreisen werden berechnet
+        function collide(alpha) {
+            var quadtree = d3.geom.quadtree(nodes);
+            return function(d) {
+                var r = d.radius + 2*scalingOffset + maxRadius + Math.max(padding, clusterPadding),
+                    nx1 = d.x - r,
+                    nx2 = d.x + r,
+                    ny1 = d.y - r,
+                    ny2 = d.y + r;
+                quadtree.visit(function(quad, x1, y1, x2, y2) {
+                    if (quad.point && (quad.point !== d)) {
+                        var x = d.x - quad.point.x,
+                            y = d.y - quad.point.y,
+                            l = Math.sqrt(x * x + y * y),
+                            r = d.radius + 2*scalingOffset + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
+                        if (l < r) {
+                            l = (l - r) / l * alpha;
+                            d.x -= x *= l;
+                            d.y -= y *= l;
+                            quad.point.x += x;
+                            quad.point.y += y;
+                        }
+                    }
+                    return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+                });
+            };
+        }
+
+    });
     </script>
