@@ -18,7 +18,8 @@
         clusterPadding = 15, //Abstände zwischen verschiedenfarbigen Clustern
         maxRadius = 100, // Maximaler Radius eines Knotens
         scaling = 0.03, // Skalierung der Knoten
-        scalingOffset = 0;
+        scalingOffset = 0,
+        mode = 1;
 
     var n = 35, // Anzahl aller Knoten
         m = 5; // Anzahl von Clustern
@@ -151,16 +152,31 @@
 
         // Anwendung läuft nach Ticks
         function tick(e) {
-            node
-                .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
-                .each(collide(.8)) // Kollisionen werden verechnet
-                // Neue Position wird gespeichert
-                .attr("cx", function(d) {
-                    return d.x;
-                })
-                .attr("cy", function(d) {
-                    return d.y;
-                });
+            
+                if(mode == 0){
+                    node
+                        .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
+                        .each(collide(.8))
+                        // Neue Position wird gespeichert
+                        .attr("cx", function(d) {
+                            return d.x;
+                        })
+                        .attr("cy", function(d) {
+                            return d.y;
+                        })
+                }
+                if(mode == 1) {
+                    node
+                        .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
+                        .each(Collide(nodes,padding)) // Kollisionen werden verechnet
+                        // Neue Position wird gespeichert
+                        .attr("cx", function(d) {
+                            return d.x;
+                        })
+                        .attr("cy", function(d) {
+                            return d.y;
+                        })
+                };
         }
 
         // Cluster bewegen sich miteinander
@@ -210,6 +226,46 @@
                 });
             };
         }
+
+        function Collide(nodes, padding) {
+// Resolve collisions between nodes.
+        var maxRadius = d3.max(nodes, function(d) {return d.radius});
+        return function collide(alpha) {
+        var quadtree = d3.geom.quadtree(nodes);
+        return function(d) {
+        var r = d.radius + 2*scalingOffset + maxRadius + Math.max(padding, clusterPadding),
+            nx1 = d.x - r,
+            nx2 = d.x + r,
+            ny1 = d.y - r,
+            ny2 = d.y + r;
+        quadtree.visit(function(quad, x1, y1, x2, y2) {
+            var possible = !(x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1);
+            if (quad.point && (quad.point !== d) && possible) {
+            var x = d.x - quad.point.x,
+                y = d.y - quad.point.y,
+                l = Math.sqrt(x * x + y * y),
+                r = d.radius + quad.point.radius + padding,
+                m = Math.pow(quad.point.radius, 3),
+                mq = Math.pow(d.radius, 3),
+                mT = m + mq;
+            if (l < r) {
+            //move the nodes away from each other along the radial (normal) vector
+            //taking relative mass into consideration, the sign is already established
+            //in calculating x and y and the nodes are modelled as spheres for calculating mass
+                l = (r - l) / l * alpha;
+                d.x += (x *= l) * m/mT;
+                d.y += (y *= l) * m/mT;
+                quad.point.x -= x * mq/mT;
+                quad.point.y -= y * mq/mT;
+            }
+            }
+        return !possible;
+      });
+    };
+  }
+}
+
+
 
     });
     </script>
