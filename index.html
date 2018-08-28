@@ -2,12 +2,15 @@
 
 <body>
     <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-    <p>
+    <div class="control-panel">
         <label for="scalingOffset" style="display: inline-block; width: 160px; text-align: right">
             Scaling: <span id="scalingOffset-value" style="width:400px">...</span>
         </label>
         <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
-    </p>
+        <br>
+        <input name="clusterForceButton" type="button" value="Cluster Force" onclick="updateMode(0)" />
+        <input name="centerForceButton" type="button" value="Center Force" onclick="updateMode(1)" />
+    </div>
     <script>
     //================================================================================
     // Eigenschaften
@@ -19,7 +22,10 @@
         maxRadius = 100, // Maximaler Radius eines Knotens
         scaling = 0.03, // Skalierung der Knoten
         scalingOffset = 0,
-        mode = 1;
+        mode = 0;
+
+    var x = width / 2;
+    var y = height / 2;
 
     var n = 35, // Anzahl aller Knoten
         m = 5; // Anzahl von Clustern
@@ -30,6 +36,12 @@
 
     var clusters = new Array(m); // Liste aller Cluster
     var nodes = []; // Liste aller Knoten
+
+
+    function updateMode(newMode) {
+        mode = newMode;
+    	console.log("Changed mode to: " + mode);
+    }
 
     //================================================================================
     // Dateneingang
@@ -109,12 +121,20 @@
             scalingOffset = this.value * 10;
             d3.select("#scalingOffset-value").text(Math.floor(scalingOffset));
 
-           	svg.selectAll("circle")
+            svg.selectAll("circle")
                 .attr("r", function(d) {
                     return d.radius + scalingOffset;
                 });
 
         });
+
+        var ring = d3.scale.linear()
+            .clamp(true)
+            .domain([25, 90 + scalingOffset]) // range of radius
+            .range([Math.min(x, y) - 35, 0]);
+        // smallest radius attracted to edge (35 -> Math.min(x, y) - 35)
+        // largest radius attracted toward center (80 -> 0)
+
 
 
 
@@ -152,31 +172,32 @@
 
         // Anwendung läuft nach Ticks
         function tick(e) {
-            
-                if(mode == 0){
-                    node
-                        .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
-                        .each(collide(.8))
-                        // Neue Position wird gespeichert
-                        .attr("cx", function(d) {
-                            return d.x;
-                        })
-                        .attr("cy", function(d) {
-                            return d.y;
-                        })
-                }
-                if(mode == 1) {
-                    node
-                        .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
-                        .each(Collide(nodes,padding)) // Kollisionen werden verechnet
-                        // Neue Position wird gespeichert
-                        .attr("cx", function(d) {
-                            return d.x;
-                        })
-                        .attr("cy", function(d) {
-                            return d.y;
-                        })
-                };
+
+            if (mode == 0) {
+                node
+                    .each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
+                    .each(collide(.8))
+                    // Neue Position wird gespeichert
+                    .attr("cx", function(d) {
+                        return d.x;
+                    })
+                    .attr("cy", function(d) {
+                        return d.y;
+                    })
+            }
+            if (mode == 1) {
+                node
+                    //.each(cluster(10 * e.alpha * e.alpha)) // ganzes Cluster wird mitgezogen
+                    .each(gravity(.8 * e.alpha))
+                    .each(collide(.8)) // Kollisionen werden verechnet
+                    // Neue Position wird gespeichert
+                    .attr("cx", function(d) {
+                        return d.x;
+                    })
+                    .attr("cy", function(d) {
+                        return d.y;
+                    })
+            };
         }
 
         // Cluster bewegen sich miteinander
@@ -203,7 +224,7 @@
         function collide(alpha) {
             var quadtree = d3.geom.quadtree(nodes);
             return function(d) {
-                var r = d.radius + 2*scalingOffset + maxRadius + Math.max(padding, clusterPadding),
+                var r = d.radius + 2 * scalingOffset + maxRadius + Math.max(padding, clusterPadding),
                     nx1 = d.x - r,
                     nx2 = d.x + r,
                     ny1 = d.y - r,
@@ -213,7 +234,7 @@
                         var x = d.x - quad.point.x,
                             y = d.y - quad.point.y,
                             l = Math.sqrt(x * x + y * y),
-                            r = d.radius + 2*scalingOffset + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
+                            r = d.radius + 2 * scalingOffset + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
                         if (l < r) {
                             l = (l - r) / l * alpha;
                             d.x -= x *= l;
@@ -227,44 +248,20 @@
             };
         }
 
-        function Collide(nodes, padding) {
-// Resolve collisions between nodes.
-        var maxRadius = d3.max(nodes, function(d) {return d.radius});
-        return function collide(alpha) {
-        var quadtree = d3.geom.quadtree(nodes);
-        return function(d) {
-        var r = d.radius + 2*scalingOffset + maxRadius + Math.max(padding, clusterPadding),
-            nx1 = d.x - r,
-            nx2 = d.x + r,
-            ny1 = d.y - r,
-            ny2 = d.y + r;
-        quadtree.visit(function(quad, x1, y1, x2, y2) {
-            var possible = !(x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1);
-            if (quad.point && (quad.point !== d) && possible) {
-            var x = d.x - quad.point.x,
-                y = d.y - quad.point.y,
-                l = Math.sqrt(x * x + y * y),
-                r = d.radius + quad.point.radius + padding,
-                m = Math.pow(quad.point.radius, 3),
-                mq = Math.pow(d.radius, 3),
-                mT = m + mq;
-            if (l < r) {
-            //move the nodes away from each other along the radial (normal) vector
-            //taking relative mass into consideration, the sign is already established
-            //in calculating x and y and the nodes are modelled as spheres for calculating mass
-                l = (r - l) / l * alpha;
-                d.x += (x *= l) * m/mT;
-                d.y += (y *= l) * m/mT;
-                quad.point.x -= x * mq/mT;
-                quad.point.y -= y * mq/mT;
-            }
-            }
-        return !possible;
-      });
-    };
-  }
-}
+        function gravity(alpha) {
+            return function(d) {
+                var angle = Math.atan2(y - d.y, x - d.x); // angle from center
+                var rad = ring(d.radius); // radius of ring of attraction
 
+                // closest point on ring of attraction
+                var rx = x - Math.cos(angle) * rad;
+                var ry = y - Math.sin(angle) * rad;
+
+                // move towards point
+                d.x += (rx - d.x) * alpha;
+                d.y += (ry - d.y) * alpha;
+            };
+        }
 
 
     });
