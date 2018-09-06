@@ -10,7 +10,12 @@
         <br>
         <input name="clusterForceButton" type="button" value="Cluster Force" onclick="updateMode(0)" />
         <input name="centerForceButton" type="button" value="Center Force" onclick="updateMode(1)" />
+        <input name="deleteToggleButton" type="button" value="Toggle Delete" onclick="toggleDelete()" /> Delete Mode: <span id="delete-mode">OFF</span>
     </div>
+    <ul style="right:0; position:fixed;" id="deleted-list">
+    </ul>
+    <div style="float:left;" id="origin"></div>
+    <div id="transfer"></div>
     <script>
     //================================================================================
     // Eigenschaften
@@ -23,6 +28,7 @@
         scaling = 0.03, // Skalierung der Knoten
         scalingOffset = 0,
         mode = 0;
+    	deleting = false;
 
     var x = width / 2;
     var y = height / 2;
@@ -36,12 +42,24 @@
 
     var clusters = new Array(m); // Liste aller Cluster
     var nodes = []; // Liste aller Knoten
+    var deleted = [];
 
 
     function updateMode(newMode) {
         mode = newMode;
-    	console.log("Changed mode to: " + mode);
+        console.log("Changed mode to: " + mode);
     }
+
+    function toggleDelete() {
+        if (!deleting) {
+            deleting = true;
+            d3.select("#delete-mode").text("ON");
+        } else {
+            deleting = false;
+            d3.select("#delete-mode").text("OFF");
+        }
+    }
+
 
     //================================================================================
     // Dateneingang
@@ -103,7 +121,7 @@
             .start();
 
         // Wir erstellen einen SVG Container und fügen ihn einfach zur DOM hinzu
-        var svg = d3.select("body").append("svg")
+        var svg = d3.select("#origin").append("svg")
             .attr("width", width)
             .attr("height", height);
 
@@ -128,6 +146,11 @@
 
         });
 
+        d3.selectAll('.item')
+            .attr('color', function(d, i) {
+                console.log(this, i);
+            })
+
         var ring = d3.scale.linear()
             .clamp(true)
             .domain([25, 90 + scalingOffset]) // range of radius
@@ -135,8 +158,12 @@
         // smallest radius attracted to edge (35 -> Math.min(x, y) - 35)
         // largest radius attracted toward center (80 -> 0)
 
-
-
+        var rect = svg.append("rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", width)
+            .attr("height", height)
+            .attr("style", "fill:rgb(255,255,255); stroke-width:3; stroke:rgb(0,0,0)");
 
         //================================================================================
         // Kreiseigenschaften
@@ -163,7 +190,26 @@
             .on("mouseout", function(d) {
                 d3.select(this).style("opacity", .5);
                 return information.style("visibility", "hidden");
+            })
+            .on("mousedown", function(d) {
+                if (deleting) {
+                    deleted.push(d);
+                    this.remove();
+                    console.log("Deleted " + d.radius / scaling + " (" + deleted.length + ")");
+                    updateDeleted(d.key + " " + d.cluster);
+                }
             });
+
+
+        function updateDeleted(value) {
+            d3.select("#deleted-list")
+                .selectAll(".item")
+                .data(deleted)
+                .enter()
+                .append("li")
+                .text(value)
+                .classed("item", true);
+        }
 
 
         //================================================================================
