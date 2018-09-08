@@ -1,16 +1,92 @@
 <!DOCTYPE html>
+<style>
+#control-panel {
+    display: block;
+    background-color: black;
+    padding: 20px;
+}
+
+#button {
+    background-color: #684f4c;
+    border: none;
+    color: white;
+    width: 160px;
+    height: 30px;
+    margin: 5px;
+    text-align: center;
+    text-decoration: none;
+    font-size: 13px;
+}
+
+#button:hover {
+    background-color: #334047;
+    opacity: 1;
+    transition: .3s;
+}
+
+#button:active {
+    background-color: black;
+    transition: .1s;
+}
+
+input[type=range] {
+    height: 15px;
+    border-radius: 5px;
+    outline: none;
+    opacity: 0.7;
+}
+
+#control-panel {
+    position: fixed;
+    left: 0;
+    top: 30%;
+    background: #565244;
+    color: white;
+    width: 20%;
+    transition: .3s;
+    padding: 5px;
+}
+
+#control-panel:hover {
+    transition: .3s;
+}
+
+#control-panel:active {
+    opacity: 1;
+    transition: .3s;
+}
+
+#control-panel label {
+    font-size: 10px;
+    display: block;
+}
+
+#vanish-mode,
+#delete-mode {
+    text-decoration: none;
+    font-size: 13px;
+}
+</style>
 
 <body>
     <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
-    <div class="control-panel">
-        <label for="scalingOffset" style="display: inline-block; width: 160px; text-align: right">
-            Scaling: <span id="scalingOffset-value" style="width:400px">...</span>
+    <div id="control-panel">
+        <label for="scalingOffset">
+            Scaling: <span id="scalingOffset-value">...</span>
         </label>
         <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
         <br>
-        <input name="clusterForceButton" type="button" value="Cluster Force" onclick="updateMode(0)" />
-        <input name="centerForceButton" type="button" value="Center Force" onclick="updateMode(1)" />
-        <input name="deleteToggleButton" type="button" value="Toggle Delete" onclick="toggleDelete()" /> Delete Mode: <span id="delete-mode">OFF</span>
+        <label for="padding">
+            Cluster Padding: <span id="padding-value">...</span>
+        </label>
+        <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
+        <br>
+        <input id="button" name="clusterForceButton" type="button" value="Cluster Force" onclick="updateMode(0)" />
+        <br>
+        <input id="button" name="centerForceButton" type="button" value="Center Force" onclick="updateMode(1)" />
+        <br>
+        <input id="button" name="deleteToggleButton" type="button" value="Toggle Delete" onclick="toggleDelete()" /> <span id="delete-mode">OFF</span>
+        <input id="button" name="allowVanishButton" type="button" value="Toggle Vanishing" onclick="toggleVanish()" /> <span id="vanish-mode">OFF</span>
     </div>
     <ul style="right:0; position:fixed;" id="deleted-list">
     </ul>
@@ -20,16 +96,17 @@
     //================================================================================
     // Eigenschaften
     //================================================================================
-    var width = 1000,
-        height = 500,
-        padding = 0.5, // Abstände zwischen gleichfarbigen Knoten
-        clusterPadding = 50, //Abstände zwischen verschiedenfarbigen Clustern
+    var width = 1200,
+        height = 600,
+        padding = 0, // Abstände zwischen gleichfarbigen Knoten
+        clusterPadding = 3, //Abstände zwischen verschiedenfarbigen Clustern
         maxRadius = 100, // Maximaler Radius eines Knotens
         scaling = 0.03, // Skalierung der Knoten
         scalingOffset = 0,
         mode = 0;
-    	deleting = false;
-    	vanishingPoint = 70;
+    deleting = false;
+    vanishing = false;
+    vanishingPoint = 70;
 
     var x = width / 2;
     var y = height / 2;
@@ -38,7 +115,7 @@
         m = 5; // Anzahl von Clustern
 
     // Farbkategorie von d3: http://bl.ocks.org/aaizemberg/78bd3dade9593896a59d
-    var color = d3.scale.category10()
+    var color = d3.scale.category20b()
         .domain(d3.range(m));
 
     var clusters = new Array(m); // Liste aller Cluster
@@ -58,6 +135,16 @@
         } else {
             deleting = false;
             d3.select("#delete-mode").text("OFF");
+        }
+    }
+
+    function toggleVanish() {
+        if (!vanishing) {
+            vanishing = true;
+            d3.select("#vanish-mode").text("ON");
+        } else {
+            vanishing = false;
+            d3.select("#vanish-mode").text("OFF");
         }
     }
 
@@ -135,7 +222,6 @@
             .style("top", "0")
             .style("right", "0")
             .style("visibility", "hidden")
-            .text("a simple tooltip");
 
         d3.select("#scalingOffset").on("input", function() {
             scalingOffset = this.value * 10;
@@ -146,21 +232,32 @@
                     return d.radius + scalingOffset;
                 })
                 .each(function(d, i) {
-                    if (d.radius + scalingOffset >= vanishingPoint) {
-                    	d.active = false;
-                        console.log("Deleted " + d.radius / scaling + " (" + deleted.length + ")");
-                        //updateDeleted(d.key + " " + d.cluster);
-                    }
-                    if (d.radius + scalingOffset < vanishingPoint && !d.active) {
-                    	console.log("Retrieved" + d.radius / scaling)
-                    	d.active = true;
+                    if (vanishing) {
+                        if (d.radius + scalingOffset >= vanishingPoint) {
+                            d.active = false;
+                            console.log("Deleted " + d.radius / scaling + " (" + deleted.length + ")");
+                            //updateDeleted(d.key + " " + d.cluster);
+                        }
+                        if (d.radius + scalingOffset < vanishingPoint && !d.active) {
+                            console.log("Retrieved" + d.radius / scaling)
+                            d.active = true;
 
+                        }
+                        restart();
                     }
+
                     restart();
+
                 });
             ring.domain([25 + scalingOffset, 90 + scalingOffset]);
             ring.range([Math.min(x, y) - 35 + scalingOffset, 0]);
 
+        });
+
+        d3.select("#padding").on("input", function() {
+            //clusterPadding = this.value;
+            d3.select("#padding-value").text(Math.floor(clusterPadding));
+            console.log(clusterPadding);
         });
 
         d3.selectAll('.item')
@@ -182,6 +279,8 @@
             .attr("height", height)
             .attr("style", "fill:rgb(255,255,255); stroke-width:3; stroke:rgb(0,0,0)");
 
+
+
         //================================================================================
         // Kreiseigenschaften
         //================================================================================
@@ -202,11 +301,15 @@
             .call(force.drag) // Kreis kann bewegt werden
             .on("mouseover", function(d) {
                 d3.select(this).style("opacity", 1);
-                return information.style("visibility", "visible").text("year: " + d.cluster + "  (" + d.key + ") amount: " + d.radius / scaling);
+                return information.style("visibility", "visible").text("year: " + d.cluster + "  (" + d.key + ") amount: " + Math.floor(d.radius / scaling));
             })
             .on("mouseout", function(d) {
                 d3.select(this).style("opacity", .5);
                 return information.style("visibility", "hidden");
+            })
+            .on("mousemove", function() {
+                return information.style("top",
+                    (d3.event.pageY - 10) + "px").style("left", (d3.event.pageX + 10) + "px");
             })
             .on("mousedown", function(d) {
                 if (deleting) {
@@ -215,6 +318,10 @@
                     console.log("Deleted " + d.radius / scaling + " (" + deleted.length + ")");
                     updateDeleted(d.key + " " + d.cluster);
                 }
+              d3.select("#control-panel").style("opacity", .1);
+            })
+            .on("mouseup", function(d) {
+              d3.select("#control-panel").style("opacity", 1);
             });
 
 
@@ -241,14 +348,14 @@
                     .each(collide(.8))
                     // Neue Position wird gespeichert
                     .attr("cx", function(d) {
-                    	if (d.active)
-                        	return d.x;
-                        return -100;
+                        if (d.active)
+                            return d.x;
+                        return -666;
                     })
                     .attr("cy", function(d) {
-                    	if (d.active)
-                        	return d.y;
-                        return -100;
+                        if (d.active)
+                            return d.y;
+                        return -666;
                     })
             }
             if (mode == 1) {
@@ -259,13 +366,13 @@
                     // Neue Position wird gespeichert
                     .attr("cx", function(d) {
                         if (d.active)
-                        	return d.x;
-                        return -100;
+                            return d.x;
+                        return -666;
                     })
                     .attr("cy", function(d) {
                         if (d.active)
-                        	return d.y;
-                        return -100;
+                            return d.y;
+                        return -666;
                     })
             };
         }
@@ -273,19 +380,22 @@
         // Cluster bewegen sich miteinander
         function cluster(alpha) {
             return function(d) {
-                var cluster = clusters[d.cluster];
-                if (cluster === d) return;
                 // Anpassung der Knotenposition an die Position des Clusters
-                var x = d.x - cluster.x,
-                    y = d.y - cluster.y,
-                    l = Math.sqrt(x * x + y * y),
-                    r = d.radius + scalingOffset + cluster.radius;
-                if (l != r) {
-                    l = (l - r) / l * alpha;
-                    d.x -= x *= l;
-                    d.y -= y *= l;
-                    cluster.x += x;
-                    cluster.y += y;
+                if (d.active) {
+
+                    var cluster = clusters[d.cluster];
+                    if (cluster === d) return;
+                    var x = d.x - cluster.x,
+                        y = d.y - cluster.y,
+                        l = Math.sqrt(x * x + y * y),
+                        r = d.radius + scalingOffset + cluster.radius;
+                    if (l != r) {
+                        l = (l - r) / l * alpha;
+                        d.x -= x *= l;
+                        d.y -= y *= l;
+                        cluster.x += x;
+                        cluster.y += y;
+                    }
                 }
             };
         }
@@ -294,27 +404,30 @@
         function collide(alpha) {
             var quadtree = d3.geom.quadtree(nodes);
             return function(d) {
-                var r = d.radius + 2 * scalingOffset + maxRadius + Math.max(padding, clusterPadding),
-                    nx1 = d.x - r,
-                    nx2 = d.x + r,
-                    ny1 = d.y - r,
-                    ny2 = d.y + r;
-                quadtree.visit(function(quad, x1, y1, x2, y2) {
-                    if (quad.point && (quad.point !== d)) {
-                        var x = d.x - quad.point.x,
-                            y = d.y - quad.point.y,
-                            l = Math.sqrt(x * x + y * y),
-                            r = d.radius + 2 * scalingOffset + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
-                        if (l < r) {
-                            l = (l - r) / l * alpha;
-                            d.x -= x *= l;
-                            d.y -= y *= l;
-                            quad.point.x += x;
-                            quad.point.y += y;
+                if (d.active) {
+                    var r = d.radius + 2 * scalingOffset + maxRadius + Math.max(padding, clusterPadding),
+                        nx1 = d.x - r,
+                        nx2 = d.x + r,
+                        ny1 = d.y - r,
+                        ny2 = d.y + r;
+                    quadtree.visit(function(quad, x1, y1, x2, y2) {
+                        if (quad.point && (quad.point !== d)) {
+                            var x = d.x - quad.point.x,
+                                y = d.y - quad.point.y,
+                                l = Math.sqrt(x * x + y * y),
+                                r = d.radius + 2 * scalingOffset + quad.point.radius + (d.cluster === quad.point.cluster ? padding : clusterPadding);
+                            if (l < r) {
+                                l = (l - r) / l * alpha;
+                                d.x -= x *= l;
+                                d.y -= y *= l;
+                                quad.point.x += x;
+                                quad.point.y += y;
+                            }
                         }
-                    }
-                    return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
-                });
+                        return x1 > nx2 || x2 < nx1 || y1 > ny2 || y2 < ny1;
+                    });
+                }
+
             };
         }
 
