@@ -312,7 +312,8 @@ input[type=range] {
             	d3.select("#relevance-list")
                     .selectAll(".item").remove();
                 for (var n in nodes) {
-                	n.relevant = false;
+                	console.log(n);
+                	nodes[n].relevant = false;
                 }
                 console.log("Cleared any relevance");
             });
