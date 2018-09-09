@@ -66,6 +66,24 @@ input[type=range] {
     text-decoration: none;
     font-size: 13px;
 }
+
+#deleted-list {
+    background-color: #2c3b54;
+    right: 0;
+    position: fixed;
+    top: 0;
+    width: 200px;
+    display: block;
+}
+
+.item {
+    font-size: 10px;
+    color: white;
+    margin: 10px;
+    padding: 3px;
+    display: block;
+    text-decoration: none;
+}
 </style>
 
 <body>
@@ -76,11 +94,6 @@ input[type=range] {
         </label>
         <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
         <br>
-        <label for="padding">
-            Cluster Padding: <span id="padding-value">...</span>
-        </label>
-        <input defaultValue="0" type="range" step="0.01" min="-10" max="10" id="scalingOffset">
-        <br>
         <input id="button" name="clusterForceButton" type="button" value="Cluster Force" onclick="updateMode(0)" />
         <br>
         <input id="button" name="centerForceButton" type="button" value="Center Force" onclick="updateMode(1)" />
@@ -88,7 +101,7 @@ input[type=range] {
         <input id="button" name="deleteToggleButton" type="button" value="Toggle Delete" onclick="toggleDelete()" /> <span id="delete-mode">OFF</span>
         <input id="button" name="allowVanishButton" type="button" value="Toggle Vanishing" onclick="toggleVanish()" /> <span id="vanish-mode">OFF</span>
     </div>
-    <ul style="right:0; position:fixed;" id="deleted-list">
+    <ul id="deleted-list">
     </ul>
     <div style="float:left;" id="origin"></div>
     <div id="transfer"></div>
@@ -99,7 +112,7 @@ input[type=range] {
     var width = 1200,
         height = 600,
         padding = 0, // Abstände zwischen gleichfarbigen Knoten
-        clusterPadding = 3, //Abstände zwischen verschiedenfarbigen Clustern
+        clusterPadding = 30, //Abstände zwischen verschiedenfarbigen Clustern
         maxRadius = 100, // Maximaler Radius eines Knotens
         scaling = 0.03, // Skalierung der Knoten
         scalingOffset = 0,
@@ -254,16 +267,11 @@ input[type=range] {
 
         });
 
-        d3.select("#padding").on("input", function() {
-            //clusterPadding = this.value;
-            d3.select("#padding-value").text(Math.floor(clusterPadding));
-            console.log(clusterPadding);
-        });
-
-        d3.selectAll('.item')
-            .attr('color', function(d, i) {
-                console.log(this, i);
-            })
+        d3.select("#deleted-list")
+        d3.selectAll(".item")
+            .on('click', function(d) {
+                console.log(this);
+            });
 
         var ring = d3.scale.linear()
             .clamp(true)
@@ -314,14 +322,18 @@ input[type=range] {
             .on("mousedown", function(d) {
                 if (deleting) {
                     deleted.push(d);
+                    nodes.pop(d);
                     this.remove();
                     console.log("Deleted " + d.radius / scaling + " (" + deleted.length + ")");
                     updateDeleted(d.key + " " + d.cluster);
                 }
-              d3.select("#control-panel").style("opacity", .1);
+                if (!deleting) {
+
+                    d3.select("#control-panel").style("opacity", .1);
+                }
             })
             .on("mouseup", function(d) {
-              d3.select("#control-panel").style("opacity", 1);
+                d3.select("#control-panel").style("opacity", 1);
             });
 
 
