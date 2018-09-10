@@ -138,7 +138,7 @@ input[type=range] {
         m = 5; // Anzahl von Clustern
 
     // Farbkategorie von d3: http://bl.ocks.org/aaizemberg/78bd3dade9593896a59d
-    var color = d3.scale.category20b()
+    var color = d3.scale.category10()
         .domain(d3.range(m));
 
     var clusters = new Array(m); // Liste aller Cluster

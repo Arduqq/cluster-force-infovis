@@ -1,0 +1,159 @@
+<!doctype html>
+<html>
+	<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Abschlussprojekt: Hate Crimes London Cluster Force Visualization</title>
+
+    <link rel="stylesheet" href="css/reveal.css">
+    <link rel="stylesheet" href="css/theme/white.css">
+
+    <!-- Theme used for syntax highlighting of code -->
+    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+    <!-- Printing and PDF exports -->
+    <script>
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.type = 'text/css';
+        link.href = window.location.search.match(/print-pdf/gi) ? 'css/print/pdf.css' : 'css/print/paper.css';
+        document.getElementsByTagName('head')[0].appendChild(link);
+    </script>
+</head>
+
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section>
+                <b><h2>Hassverbrechen in London</h2>
+                    <h3>Cluster Force Visualisierung</h3></b>
+                <h4>Artur Solomonik, David Fries</h4>
+                <h4>Bauhaus-Universität Weimar</h4>
+            </section>
+            <section>
+                <section>
+                    <h2>Idee</h2>
+                    <ul>
+                        <li>Darstellung von Größen mit Hilfe von Kreisen</li>
+                        <li>Gruppierung von Datentupeln in Clustern</li>
+                        <li>Navigation durch Clustern</li>
+                        <li>Darstellung besonders großer und kleiner Werte</li>
+                        <li>Darstellung von Hassverbrechen, deren Art und der Anzahl in London</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von den Kugeln, wenn sie erstellt werden]
+                </section>
+                <section>
+                    <h2>Umsetzung</h2>
+                    <ul>
+                        <li>D3.js Framework</li>
+                        <li>Datensatz in JSON-Format</li>
+                        <li>Interaktion über HTML-Buttons und Regler</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Mapping</h2>
+                    <ul>
+                        <li>Farbliches Mapping gemäß der Jahreszugehörigkeit</li>
+                        <li>Mapping der Bildposition nach gemeinsamem Jahr</li>
+                        <li>Mapping der Knotengröße durch entsprechen Radius</li>
+                    </ul>
+                </section>
+                <section>
+                    <h2>Funktionalität: Partition</h2>
+                    <ul>
+                        <li>Knoten ordnen sich immer im Bildzentrum als Cluster an</li>
+                        <li>Manipulation der Knotenpositionen und Neuanordnung</li>
+                        <li>Zugehörige Datenpunkte verfolgen ausgewählten Knoten</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von bewegten Clustern]
+                </section>
+                <section>
+                    <h2>Funktionalität: Skalierung und Ausblendung</h2>
+                    <ul>
+                        <li>Vergrößerung und Verkleinerung der Knoten mit Hilfe eines Reglers</li>
+                        <li>Größere Daten werden bei hoher Skalierung ausgeblendet</li>
+                        <li>Filterung von schlecht darzustellenden Extremwerten</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von Vergrößerung der Knoten]
+                </section>
+                <section>
+                    [Bild von Ausblendung/Wiederherstellung größerer Knoten]
+                </section>
+                <section>
+                    <h2>Funktionalität: Center Force Anordnung</h2>
+                    <ul>
+                        <li>Größere Knoten ordnen sich in der Bildmitte an</li>
+                        <li>Kleinere Knoten sammeln sich am Außenring an</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von Neuanordnung im Kreis und wieder zurück]
+                </section>
+                <section>
+                    <h2>Funktionalität: Löschen</h2>
+                    <ul>
+                        <li>Entfernen von Knoten im entsprechenden Löschmodus</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von Löschung der Knoten]
+                </section>
+                <section>
+                    <h2>Funktionalität: Auswahl</h2>
+                    <ul>
+                        <li>Personalisierung der dargestellten Knoten</li>
+                        <li>Selektion über Doppelklick</li>
+                        <li>Auflistung der ausgewählten Knoten am Bildrand</li>
+                        <li>Rücksetzung der Auswahl durch Doppelklick auf Hintergrund</li>
+                    </ul>
+                </section>
+                <section>
+                    [Bild von Bild von Auswahl relevanter Knoten]
+                </section>
+            </section>
+            <section>
+                <h1>Demo</h1>
+            </section>
+        </div>
+    </div>
+
+    <script src="lib/js/head.min.js"></script>
+    <script src="js/reveal.js"></script>
+
+    <script>
+        // More info about config & dependencies:
+        // - https://github.com/hakimel/reveal.js#configuration
+        // - https://github.com/hakimel/reveal.js#dependencies
+        Reveal.initialize({
+            dependencies: [{
+                    src: 'plugin/markdown/marked.js'
+                },
+                {
+                    src: 'plugin/markdown/markdown.js'
+                },
+                {
+                    src: 'plugin/notes/notes.js',
+                    async: true
+                },
+                {
+                    src: 'plugin/highlight/highlight.js',
+                    async: true,
+                    callback: function() {
+                        hljs.initHighlightingOnLoad();
+                    }
+                }
+            ]
+        });
+        Reveal.configure({
+            slideNumber: 'c/t'
+        });
+    </script>
+</body>
+</html>
